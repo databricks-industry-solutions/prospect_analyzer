@@ -1,5 +1,2 @@
-# Add your Databricks Apps here
-# Each app should be in its own subdirectory with:
-# - app.py (main application file)
-# - app.yaml (configuration)
-# - requirements.txt (dependencies)
+# This directory is reserved for Databricks Apps
+# Apps will be added here in future releases

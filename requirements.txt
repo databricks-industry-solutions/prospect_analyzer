@@ -1,1 +1,6 @@
-# Check here to get the latest version of the databricks-cli: https://github.com/databricks/cli
+# Prospect Analyzer Dependencies
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=4.9.0
+html5lib>=1.1
+# Note: PySpark and Databricks runtime dependencies are provided by the cluster 

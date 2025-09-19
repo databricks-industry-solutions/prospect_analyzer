@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+"""
+Convert Databricks notebooks to various formats for CI/CD pipeline.
+This script ensures notebooks are properly formatted for Databricks deployment.
+"""
 
 import os
+import json
+import sys
 import re
-import markdown
 import glob
-import html
-
+from pathlib import Path
 
 def parse_databricks_notebook(filepath):
     """Parse a Databricks .py notebook format into cells"""
@@ -27,20 +31,16 @@ def parse_databricks_notebook(filepath):
             md_lines = []
             for line in lines:
                 if line.startswith('# MAGIC %md'):
-                    # Remove '# MAGIC %md'
                     md_lines.append(line[11:].strip())
                 elif line.startswith('# MAGIC '):
-                    # Remove '# MAGIC '
                     md_lines.append(line[8:])
                 elif line.startswith('# MAGIC'):
-                    # Remove '# MAGIC'
                     md_lines.append(line[7:])
             
             md_content = '\n'.join(md_lines)
             cells.append({'type': 'markdown', 'content': md_content})
         else:
             # This is a code cell
-            # Remove any leading comments that aren't actual code
             lines = section.split('\n')
             code_lines = []
             for line in lines:
@@ -53,64 +53,92 @@ def parse_databricks_notebook(filepath):
     
     return cells
 
+def validate_notebook_structure(filepath):
+    """Validate that notebook follows Databricks conventions"""
+    issues = []
+    
+    with open(filepath, 'r') as f:
+        content = f.read()
+    
+    # Check for proper Databricks notebook header
+    if not content.startswith('# Databricks notebook source'):
+        issues.append("Missing Databricks notebook header")
+    
+    # Check for COMMAND separators
+    if '# COMMAND ----------' not in content:
+        issues.append("No command separators found")
+    
+    # Check for proper MAGIC comments in markdown cells
+    md_sections = re.findall(r'# MAGIC %md.*?(?=# COMMAND ----------|$)', content, re.DOTALL)
+    for section in md_sections:
+        lines = section.split('\n')
+        for line in lines[1:]:  # Skip first line with %md
+            if line.strip() and not line.startswith('# MAGIC'):
+                issues.append(f"Markdown cell has improper formatting: {line[:50]}...")
+                break
+    
+    return issues
 
-def convert_to_html_fragment(filepath):
-    """Convert Databricks .py notebook to HTML fragment with syntax highlighting"""
-    filename = os.path.basename(filepath)
-    name_without_ext = os.path.splitext(filename)[0]
-    
-    cells = parse_databricks_notebook(filepath)
-    html_content = []
-    
-    for i, cell in enumerate(cells):
-        if cell['type'] == 'markdown':
-            # Convert markdown to HTML using nbconvert structure
-            md_html = markdown.markdown(
-                cell['content'], 
-                extensions=['fenced_code', 'tables', 'nl2br', 'toc']
-            )
-            html_content.append(f'''<div class="cell border-box-sizing text_cell rendered">
-<div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-{md_html}
-</div>
-</div>
-</div>''')
-        elif cell['type'] == 'code':
-            # Create code cell with proper syntax highlighting for Python
-            escaped_code = html.escape(cell['content'])
-            html_content.append(f'''<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-<div class="inner_cell">
-<div class="input_area">
-<div class="highlight hl-ipython3">
-<pre class="language-python"><code class="language-python">{escaped_code}</code></pre>
-</div>
-</div>
-</div>
-</div>
-</div>''')
-    
-    # Return just the content fragment (no full HTML document)
-    fragment_content = '\n'.join(html_content)
-    
-    # Write fragment to temp file for the main script to read
-    temp_path = f"temp_{name_without_ext}_fragment.html"
-    with open(temp_path, 'w') as f:
-        f.write(fragment_content)
-    
-    return name_without_ext, fragment_content
+def convert_notebook(notebook_path):
+    """Convert and validate a Databricks notebook."""
+    try:
+        # Validate structure
+        issues = validate_notebook_structure(notebook_path)
+        if issues:
+            print(f"⚠️  Issues found in {notebook_path}:")
+            for issue in issues:
+                print(f"   - {issue}")
+            return False
+        
+        # Parse cells for additional validation
+        cells = parse_databricks_notebook(notebook_path)
+        if not cells:
+            print(f"⚠️  No cells found in {notebook_path}")
+            return False
+        
+        print(f"✅ Validated: {notebook_path} ({len(cells)} cells)")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error processing {notebook_path}: {e}")
+        return False
 
+def main():
+    """Convert and validate all notebooks in the repository."""
+    notebook_dir = Path("notebooks")
+    
+    if not notebook_dir.exists():
+        print("No notebooks directory found")
+        return 0
+    
+    success_count = 0
+    total_count = 0
+    
+    # Process .py notebooks (Databricks format)
+    for notebook_path in notebook_dir.glob("*.py"):
+        total_count += 1
+        if convert_notebook(notebook_path):
+            success_count += 1
+    
+    # Process .sql notebooks
+    for notebook_path in notebook_dir.glob("*.sql"):
+        total_count += 1
+        try:
+            with open(notebook_path, 'r') as f:
+                content = f.read()
+            
+            # Basic SQL notebook validation
+            if '-- Databricks notebook source' in content:
+                print(f"✅ Validated: {notebook_path} (SQL notebook)")
+                success_count += 1
+            else:
+                print(f"⚠️  Missing SQL notebook header: {notebook_path}")
+        except Exception as e:
+            print(f"❌ Error processing {notebook_path}: {e}")
+    
+    print(f"\n📊 Validation Summary: {success_count}/{total_count} notebooks validated successfully")
+    
+    return 0 if success_count == total_count else 1
 
 if __name__ == "__main__":
-    # Process all .py files in notebooks directory
-    notebook_data = {}
-    for py_file in glob.glob('notebooks/*.py'):
-        name, fragment = convert_to_html_fragment(py_file)
-        notebook_data[name] = fragment
-        print(f"Converted {py_file} to HTML fragment")
-    
-    # Write notebook data to a JSON file for the main script
-    import json
-    with open('notebook_fragments.json', 'w') as f:
-        json.dump(notebook_data, f)
+    sys.exit(main())

@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Databricks Asset Bundle Cleanup Script
-# This script removes your deployed DABs project
+# Prospect Analyzer Cleanup Script
+# This script removes your deployed prospect analyzer resources
 
 set -e  # Exit on any error
 
-echo "🧹 Databricks Asset Bundle Cleanup"
-echo "=================================="
+echo "🧹 Prospect Analyzer Cleanup"
+echo "============================"
 
 # Colors for output
 RED='\033[0;31m'
@@ -35,34 +35,40 @@ print_error() {
 # Check if databricks CLI is installed
 if ! command -v databricks &> /dev/null; then
     print_error "Databricks CLI is not installed or not in PATH"
+    print_error "Please install it first: https://docs.databricks.com/dev-tools/cli/index.html"
     exit 1
 fi
 
 # Show what will be destroyed
 print_status "Getting current deployment summary..."
-databricks bundle summary
-
-echo ""
-print_warning "⚠️  This will permanently delete all deployed resources!"
-print_warning "   • Jobs will be deleted"
-print_warning "   • Notebooks will be removed from workspace"
-print_warning "   • All bundle artifacts will be cleaned up"
-echo ""
-
-read -p "Are you sure you want to destroy the bundle? (y/N): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    print_status "Destroying bundle..."
-    if databricks bundle destroy; then
-        print_success "Bundle destroyed successfully!"
+if databricks bundle summary 2>/dev/null; then
+    echo ""
+    print_warning "⚠️  This will permanently delete all deployed resources!"
+    print_warning "   • Prospect analysis pipeline will be deleted"
+    print_warning "   • All data tables will be removed (prospect_raw_data, etc.)"
+    print_warning "   • Dashboard will be deleted"
+    print_warning "   • All notebooks will be removed from workspace"
+    echo ""
+    
+    read -p "Are you sure you want to destroy the prospect analyzer? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_status "Destroying prospect analyzer..."
+        if databricks bundle destroy; then
+            print_success "Prospect analyzer destroyed successfully!"
+        else
+            print_error "Destruction failed"
+            exit 1
+        fi
     else
-        print_error "Bundle destruction failed"
-        exit 1
+        print_status "Cleanup cancelled"
+        exit 0
     fi
 else
-    print_status "Cleanup cancelled"
-    exit 0
+    print_warning "No deployed bundle found"
+    print_status "Nothing to clean up"
 fi
 
 echo ""
 print_success "Cleanup completed! 🎉" 
+print_status "You can redeploy anytime with: databricks bundle deploy"

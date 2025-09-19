@@ -1,0 +1,390 @@
+{
+  "datasets": [
+    {
+      "displayName": "Prospect Campaign Data",
+      "name": "prospect_campaign_data",
+      "queryLines": [
+        "SELECT \n",
+        "  CONCAT('<div style=\"font-weight: bold; color: #8B4513;\">', p1.company_name, '</div>',\n",
+        "         '<a href=\"', p1.website, '\" target=\"_blank\" style=\"color: #CD853F; text-decoration: none;\">🌐 ', p1.website, '</a>') as formatted_header,\n",
+        "  p2.brick_company_score as brick_score,\n",
+        "  p2.ai_business_summary,\n",
+        "  p3.all_email_links as email_action_buttons,\n",
+        "  p1.company_name,\n",
+        "  p3.email_generated_at as last_run\n",
+        "FROM catalog.schema.customer_list p1 -- CHANGE THIS: Replace with your customer list table\n",
+        "left join catalog.schema.v_prospect_analysis p2 -- CHANGE THIS: Replace with your prospect analysis view\n",
+        "on p1.id = p2.id\n",
+        "left join catalog.schema.v_email_campaigns p3 -- CHANGE THIS: Replace with your email campaigns view\n",
+        "on p1.id = p3.id\n",
+        "where p2.brick_company_score > 0.0\n",
+        "ORDER BY brick_company_score DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "displayName": "Main",
+      "layout": [
+        {
+          "position": {
+            "height": 12,
+            "width": 12,
+            "x": 0,
+            "y": 1
+          },
+          "widget": {
+            "name": "prospect_campaign_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "prospect_campaign_data",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "expression": "`formatted_header`",
+                      "name": "formatted_header"
+                    },
+                    {
+                      "expression": "`brick_score`",
+                      "name": "brick_score"
+                    },
+                    {
+                      "expression": "`ai_business_summary`",
+                      "name": "ai_business_summary"
+                    },
+                    {
+                      "expression": "`email_action_buttons`",
+                      "name": "email_action_buttons"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "allowHTMLByDefault": false,
+              "condensed": true,
+              "encodings": {
+                "columns": [
+                  {
+                    "alignContent": "left",
+                    "allowHTML": true,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "defaultColumnWidth": 300,
+                    "displayAs": "string",
+                    "displayName": "formatted_header",
+                    "fieldName": "formatted_header",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100000,
+                    "preserveWhitespace": false,
+                    "title": "Business",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "displayAs": "number",
+                    "displayName": "brick_score",
+                    "fieldName": "brick_score",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "numberFormat": "100%",
+                    "order": 100001,
+                    "preserveWhitespace": false,
+                    "scalePercentBy100": true,
+                    "title": "Brick Score",
+                    "type": "integer",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "allowSearch": true,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "defaultColumnWidth": 550,
+                    "displayAs": "string",
+                    "displayName": "ai_business_summary",
+                    "fieldName": "ai_business_summary",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": false,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100002,
+                    "preserveWhitespace": true,
+                    "title": "Business Summary",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  },
+                  {
+                    "alignContent": "left",
+                    "allowHTML": true,
+                    "allowSearch": false,
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "defaultColumnWidth": 400,
+                    "displayAs": "string",
+                    "displayName": "email_action_buttons",
+                    "fieldName": "email_action_buttons",
+                    "highlightLinks": false,
+                    "imageHeight": "",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "linkOpenInNewTab": true,
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "order": 100003,
+                    "preserveWhitespace": false,
+                    "title": "Prospecting Emails",
+                    "type": "string",
+                    "useMonospaceFont": false,
+                    "visible": true
+                  }
+                ]
+              },
+              "invisibleColumns": [
+                {
+                  "alignContent": "left",
+                  "allowHTML": false,
+                  "allowSearch": false,
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "displayAs": "string",
+                  "highlightLinks": false,
+                  "imageHeight": "",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "linkOpenInNewTab": true,
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "name": "company_name",
+                  "order": 100004,
+                  "preserveWhitespace": false,
+                  "title": "company_name",
+                  "type": "string",
+                  "useMonospaceFont": false
+                },
+                {
+                  "alignContent": "right",
+                  "allowHTML": false,
+                  "allowSearch": false,
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "dateTimeFormat": "DD/MM/YYYY HH:mm:ss.SSS",
+                  "displayAs": "datetime",
+                  "highlightLinks": false,
+                  "imageHeight": "",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "linkOpenInNewTab": true,
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "name": "last_run",
+                  "order": 100005,
+                  "preserveWhitespace": false,
+                  "title": "last_run",
+                  "type": "datetime",
+                  "useMonospaceFont": false
+                }
+              ],
+              "itemsPerPage": 500,
+              "paginationSize": "default",
+              "version": 1,
+              "widgetType": "table",
+              "withRowNumber": false
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 2,
+            "x": 0,
+            "y": 0
+          },
+          "widget": {
+            "name": "43d859b2",
+            "queries": [
+              {
+                "name": "dashboards/01f074b9b9ef12fc84f15474ec930299/datasets/01f074be1e6d176299e78a40e46489ac_company_name",
+                "query": {
+                  "datasetName": "prospect_campaign_data",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "`company_name`",
+                      "name": "company_name"
+                    },
+                    {
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)",
+                      "name": "company_name_associativity"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "company_name",
+                    "fieldName": "company_name",
+                    "queryName": "dashboards/01f074b9b9ef12fc84f15474ec930299/datasets/01f074be1e6d176299e78a40e46489ac_company_name"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Company Name"
+              },
+              "version": 2,
+              "widgetType": "filter-multi-select"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 2,
+            "x": 2,
+            "y": 0
+          },
+          "widget": {
+            "name": "920cac67",
+            "queries": [
+              {
+                "name": "dashboards/01f074b9b9ef12fc84f15474ec930299/datasets/01f074b9b9ef1a3aa19011d08df6afb7_brick_score",
+                "query": {
+                  "datasetName": "prospect_campaign_data",
+                  "disaggregated": false,
+                  "fields": [
+                    {
+                      "expression": "MIN(`brick_score`)",
+                      "name": "min(brick_score)"
+                    },
+                    {
+                      "expression": "MAX(`brick_score`)",
+                      "name": "max(brick_score)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "fields": [
+                  {
+                    "displayName": "brick_score",
+                    "fieldName": "brick_score",
+                    "queryName": "dashboards/01f074b9b9ef12fc84f15474ec930299/datasets/01f074b9b9ef1a3aa19011d08df6afb7_brick_score"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Company"
+              },
+              "version": 2,
+              "widgetType": "range-slider"
+            }
+          }
+        },
+        {
+          "position": {
+            "height": 1,
+            "width": 2,
+            "x": 4,
+            "y": 0
+          },
+          "widget": {
+            "name": "da11e93e",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "prospect_campaign_data",
+                  "disaggregated": true,
+                  "fields": [
+                    {
+                      "expression": "`last_run`",
+                      "name": "last_run"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "encodings": {
+                "value": {
+                  "displayName": "last_run",
+                  "fieldName": "last_run"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Refreshed:"
+              },
+              "version": 2,
+              "widgetType": "counter"
+            }
+          }
+        }
+      ],
+      "name": "main_page",
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}

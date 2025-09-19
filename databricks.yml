@@ -1,94 +1,314 @@
+# Brickstore Prospect Analyzer - Databricks Asset Bundle Configuration
+# =====================================================================
+# This bundle deploys an AI-powered construction industry prospect analysis solution
+# including data pipelines, dashboards, and automated email generation capabilities.
+#
+# CONFIGURATION REQUIRED:
+# Before deploying, update these settings to match your Databricks environment:
+# 1. Search for "# CHANGE THIS:" comments (use Ctrl+F) and update all values
+# 2. Key settings: workspace URLs, catalog, schema, email, warehouse ID
+#
+# DEPLOYMENT:
+# Deploy using Databricks Asset Bundles in the UI:
+# databricks bundle deploy --target dev
+#
+# For detailed setup instructions, see README.md
+
 bundle:
-  name: demo_workflow
+  name: prospect_analyzer
+  
+# Bundle configuration and metadata
+include:
+  - "**/*.yml"
+  - "**/*.yaml"
 
 variables:
-  # Project name - replace with your solution accelerator name
+  # Project metadata
   project_name:
-    description: "Name of your solution accelerator"
-    default: "my-solution-accelerator"
+    description: "Brickstore Prospect Analyzer - AI-Driven Construction Industry Lead Generation"
+    default: "prospect-analyzer"
     
-  # The "warehouse_id" variable is used to reference the warehouse used by the dashboard.
-  warehouse_id:
-    lookup:
-      # Replace this with the name of your SQL warehouse.
-      warehouse: "Shared Unity Catalog Serverless"
-      
-  # Environment variable used for deployment paths
+  project_version:
+    description: "Project version for tracking deployments"
+    default: "1.0.0"
+    
+  # Environment configuration
   environment:
     description: "Deployment environment (dev, staging, prod)"
     default: "dev"
+    
+  # Unity Catalog configuration - UPDATE THESE VALUES
+  catalog:
+    description: "Unity Catalog name - Change to your catalog (e.g., 'main', 'users', 'hive_metastore')"
+    default: "main"  # CHANGE THIS: Replace with your catalog name
+  
+  schema:
+    description: "Schema/database name for prospect analysis tables"
+    default: "prospect_analyzer"  # CHANGE THIS: Replace with your preferred schema name  # Pipeline configuration
+  batch_size:
+    description: "Batch size for website scraping operations (1-1000)"
+    default: 100
+    
+  request_timeout:
+    description: "Timeout for web requests in seconds (10-300)"
+    default: 30
+    
+  max_retries:
+    description: "Maximum retry attempts for failed tasks (0-5)"
+    default: 2
+    
+  # Data configuration
+  data_retention_days:
+    description: "Number of days to retain intermediate data (1-365)"
+    default: 30
+    
+  # Notification configuration - UPDATE THIS VALUE
+  notification_email:
+    description: "Email address for pipeline notifications"
+    default: "your-email@company.com"  # CHANGE THIS: Replace with your email address
+    
+  # Warehouse configuration - UPDATE THIS VALUE
+  warehouse_id:
+    description: "SQL Warehouse ID for dashboard and query execution"
+    default: "your-warehouse-id"  # CHANGE THIS: Replace with your SQL Warehouse ID
+    # To find your warehouse ID: Go to SQL Warehouses > Click your warehouse > Copy the ID from URL
 
+# Deployment targets for different environments
+# Each target can have different configurations and workspace locations
 targets:
+  # Development environment - for testing and development
   dev:
     default: true
     mode: development
+    workspace:
+      host: https://your-workspace.cloud.databricks.com  # CHANGE THIS: Replace with your workspace URL
+    variables:
+      environment: "dev"
+      max_retries: 1  # Fail fast in development
+      batch_size: 50  # Smaller batches for faster testing
+      notification_email: "your-email@company.com"  # CHANGE THIS: Replace with your email
+      # Schema will be created in user-specified catalog
+      schema: "${bundle.name}_dev"
+    
+  # Staging environment - for pre-production testing
+  staging:
+    mode: development  # Still development mode but with production-like data
+    workspace:
+      host: https://your-workspace.cloud.databricks.com  # CHANGE THIS: Replace with your workspace URL
+    variables:
+      environment: "staging"
+      max_retries: 2
+      batch_size: 75  # Medium batch size
+      schema: "${bundle.name}_staging"
+      notification_email: "your-email@company.com"  # CHANGE THIS: Replace with your email
+      data_retention_days: 7  # Shorter retention in staging
+    
+  # Production environment - for live operations
+  prod:
+    mode: production
+    workspace:
+      host: https://your-workspace.cloud.databricks.com  # CHANGE THIS: Replace with your workspace URL
+    variables:
+      environment: "prod"
+      max_retries: 3  # More retries in production
+      batch_size: 50   # Conservative batch size for stability
+      request_timeout: 45  # Longer timeout for reliability
+      schema: "${bundle.name}_prod"
+      notification_email: "your-email@company.com"  # CHANGE THIS: Replace with your email
+      data_retention_days: 90  # Longer retention in production
 
-# Customize the resources below based on your solution accelerator needs
+# Main prospect analysis pipeline resources
+# These resources will be created in your Databricks workspace
 resources:
-  # Uncomment and customize if you have Databricks Apps
-  # apps:
-  #   your_app:
-  #     name: "your-app-name"
-  #     description: "Your app description"
-  #     source_code_path: "/Users/${workspace.current_user.userName}/${var.project_name}-${var.environment}/files/apps/your_app"
-
-  # Uncomment and customize if you have dashboards
-  # dashboards:
-  #   your_dashboard:
-  #     display_name: "Your Dashboard"
-  #     file_path: "./dashboards/your_dashboard.lvdash.json"
-  #     warehouse_id: "${var.warehouse_id}"
-
-  # Example job workflow - customize based on your notebooks
+  # Core data processing pipeline job
   jobs:
-    example_workflow:
-      name: "${var.project_name} - Example Workflow"
+    prospect_analysis_pipeline:
+      name: "${var.project_name} - Prospect Analysis Pipeline (${var.environment})"
+      description: "AI-powered construction industry prospect analysis and lead generation pipeline"
+      
+      # Job configuration
+      max_concurrent_runs: 1  # Prevent concurrent runs to avoid data conflicts
+      timeout_seconds: 7200   # 2 hours timeout for web scraping operations
+      
+      # Job parameters that can be overridden at runtime
+      parameters:
+        - name: "catalog"
+          default: "${var.catalog}"
+        - name: "schema" 
+          default: "${var.schema}"
+        - name: "environment"
+          default: "${var.environment}"
+        - name: "batch_size"
+          default: "${var.batch_size}"
+      
+      # Email notifications
+      email_notifications:
+        on_start:
+          - "${var.notification_email}"
+        on_success:
+          - "${var.notification_email}"
+        on_failure:
+          - "${var.notification_email}"
+        on_duration_warning_threshold_exceeded:
+          - "${var.notification_email}"
+        
+      # Pipeline tasks with comprehensive error handling and monitoring
       tasks:
-        - task_key: example_notebook
+        # Stage 1: Data Ingestion - Load customer and prospect data
+        - task_key: "01_data_ingestion"
+          description: "Ingest customer lists and prospect data into Unity Catalog"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 1800  # 30 minutes
           notebook_task:
-            notebook_path: "./notebooks/example_notebook.ipynb"
-        - task_key: example_databricks_notebook
+            notebook_path: "./notebooks/01_data_ingestion.py"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              project_version: ${var.project_version}
+              
+        # Stage 2: Website Scraping - Extract company website content
+        - task_key: "02_website_scraping"
+          description: "Scrape website content for business analysis"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 3600  # 1 hour - longest running task
           depends_on:
-            - task_key: example_notebook
+            - task_key: "01_data_ingestion"
           notebook_task:
-            notebook_path: "./notebooks/example_databricks_notebook.py"
+            notebook_path: "./notebooks/02_website_scraping.py"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              batch_size: ${var.batch_size}
+              request_timeout: ${var.request_timeout}
+              environment: ${var.environment}
+              
+        # Stage 3: Content Cleaning - Structure and clean scraped content
+        - task_key: "03_content_cleaning"
+          description: "Clean and structure scraped website content"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 1800  # 30 minutes
+          depends_on:
+            - task_key: "02_website_scraping"
+          notebook_task:
+            notebook_path: "./notebooks/03_content_cleaning.py"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              
+        # Stage 4: AI Summarization - Generate business summaries using AI
+        - task_key: "04_ai_summarization"
+          description: "Generate AI-powered business summaries"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 2400  # 40 minutes - AI processing can be slow
+          depends_on:
+            - task_key: "03_content_cleaning"
+          notebook_task:
+            notebook_path: "./notebooks/04_ai_summarization.sql"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              
+        # Stage 5: AI Classification - Classify companies using multiple dimensions
+        - task_key: "05_ai_classification"
+          description: "AI-powered multi-dimensional company classification"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 2400  # 40 minutes
+          depends_on:
+            - task_key: "04_ai_summarization"
+          notebook_task:
+            notebook_path: "./notebooks/05_ai_classification.sql"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              
+        # Stage 6: Data Consolidation - Merge all data sources
+        - task_key: "06_consolidation"
+          description: "Consolidate classifications with prospect data"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 1200  # 20 minutes
+          depends_on:
+            - task_key: "05_ai_classification"
+          notebook_task:
+            notebook_path: "./notebooks/06_consolidation.sql"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              
+        # Stage 7: Prospect Scoring - Calculate composite prospect scores
+        - task_key: "07_prospect_scoring"
+          description: "Calculate multi-dimensional prospect scores"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 1800  # 30 minutes
+          depends_on:
+            - task_key: "06_consolidation"
+          notebook_task:
+            notebook_path: "./notebooks/07_prospect_scoring.py"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              
+        # Stage 8: Email Generation - Create personalized outreach emails
+        - task_key: "08_email_generation"
+          description: "Generate personalized email campaigns"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 2400  # 40 minutes - AI content generation
+          depends_on:
+            - task_key: "07_prospect_scoring"
+          notebook_task:
+            notebook_path: "./notebooks/08_email_generation.py"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              
+        # Stage 9: Monitoring & Validation - Quality checks and metrics
+        - task_key: "09_monitoring_validation"
+          description: "Pipeline monitoring and data quality validation"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 1200  # 20 minutes
+          depends_on:
+            - task_key: "08_email_generation"
+          notebook_task:
+            notebook_path: "./notebooks/99_monitoring_validation.py"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
+              data_retention_days: ${var.data_retention_days}
+              
+        # Stage 10: Reporting Views - Create business intelligence views
+        - task_key: "10_reporting_views"
+          description: "Create reporting views and business intelligence"
+          max_retries: ${var.max_retries}
+          retry_on_timeout: true
+          timeout_seconds: 1200  # 20 minutes
+          depends_on:
+            - task_key: "09_monitoring_validation"
+          notebook_task:
+            notebook_path: "./notebooks/10_reporting_views.sql"
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              environment: ${var.environment}
 
-# Example resources you can uncomment and customize:
-# resources:
-#   apps:
-#     your_app:
-#       name: "your-app-name"
-#       description: "Your app description"
-#       source_code_path: "./apps/your_app"
-#
-#   jobs:
-#     your_workflow:
-#       name: "Your Workflow Name"
-#       tasks:
-#         - task_key: first_task
-#           notebook_task:
-#             notebook_path: "./notebooks/your_first_notebook.ipynb"
-#         - task_key: second_task
-#           depends_on:
-#             - task_key: first_task
-#           notebook_task:
-#             notebook_path: "./notebooks/your_second_notebook.ipynb"
-#
-#   pipelines:
-#     your_pipeline:
-#       name: "Your Pipeline"
-#       storage: "/Shared/your-pipeline"
-#       configuration:
-#         your_config: "value"
-#
-#   models:
-#     your_model:
-#       name: "Your Model"
-#       model_path: "models/your_model"
-#
-#   dashboards:
-#     your_dashboard:
-#       display_name: "Your Dashboard"
-#       file_path: "./dashboards/your_dashboard.lvdash.json"
-
-# For more options and schema, see: https://docs.databricks.com/aws/en/dev-tools/bundles/settings
+  # Dashboard deployment re-enabled
+  dashboards:
+    prospect_outreach_dashboard:
+      display_name: "Brickstore Prospect Analyzer - AI-Powered Outreach Dashboard (${var.environment})"
+      file_path: "./dashboards/prospect_outreach_dashboard.lvdash.json"
+      warehouse_id: "${var.warehouse_id}" 
