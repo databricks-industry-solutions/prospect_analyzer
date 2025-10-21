@@ -7,7 +7,7 @@
         "SELECT \n",
         "  CONCAT('<div style=\"font-weight: bold; color: #8B4513;\">', p1.company_name, '</div>',\n",
         "         '<a href=\"', p1.website, '\" target=\"_blank\" style=\"color: #CD853F; text-decoration: none;\">🌐 ', p1.website, '</a>') as formatted_header,\n",
-        "  p2.brick_company_score as brick_score,\n",
+        "  p2.composite_score as brick_score,\n",
         "  p2.ai_business_summary,\n",
         "  p3.all_email_links as email_action_buttons,\n",
         "  p1.company_name,\n",
@@ -18,7 +18,7 @@
         "left join catalog.schema.v_email_campaigns p3 -- CHANGE THIS: Replace with your email campaigns view\n",
         "on p1.id = p3.id\n",
         "where p2.brick_company_score > 0.0\n",
-        "ORDER BY brick_company_score DESC"
+        "ORDER BY composite_score DESC"
       ]
     }
   ],
