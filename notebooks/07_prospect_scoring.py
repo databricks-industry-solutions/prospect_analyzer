@@ -90,8 +90,8 @@ def calculate_prospect_scores(df):
                     .when(F.col("company_type").rlike("(?i)business_to_business"), 1)
                     .otherwise(-1)) \
         .withColumn("brick_company_score",
-                    F.when(F.col("is_brick_company").rlike("(?i)brick_company"), 1)
-                    .when(F.col("is_brick_company").rlike("(?i)not_brick_company"), 0)
+                    F.when(F.col("is_brick_company").rlike("(?i)not_brick_company"), 0)
+                    .when(F.col("is_brick_company").rlike("(?i)brick_company"), 1)
                     .otherwise(-1)) \
         .withColumn("company_stage_score",
                     F.when(F.col("company_stage").rlike("(?i)early_stage"), 0)
