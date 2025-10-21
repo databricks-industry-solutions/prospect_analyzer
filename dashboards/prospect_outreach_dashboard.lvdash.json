@@ -17,7 +17,7 @@
         "on p1.id = p2.id\n",
         "left join catalog.schema.v_email_campaigns p3 -- CHANGE THIS: Replace with your email campaigns view\n",
         "on p1.id = p3.id\n",
-        "where p2.brick_company_score > 0.0\n",
+        "where p2.composite_score > 0.0\n",
         "ORDER BY p2.composite_score DESC"
       ]
     }
